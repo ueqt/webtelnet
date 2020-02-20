@@ -9,7 +9,7 @@ function Utf8ArrayToStr(array) {
     while(i < len) {
     c = array[i++];
     switch(c >> 4)
-    { 
+    {
       case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7:
         // 0xxxxxxx
         out += String.fromCharCode(c);
@@ -48,9 +48,9 @@ function binayUtf8ToString(buf, begin){
     }
     else if ((flag &0xFC) === 0xFC ){
       unicode = (buf[pos] & 0x3) << 30;
-      unicode |= (buf[pos+1] & 0x3F) << 24; 
-      unicode |= (buf[pos+2] & 0x3F) << 18; 
-      unicode |= (buf[pos+3] & 0x3F) << 12; 
+      unicode |= (buf[pos+1] & 0x3F) << 24;
+      unicode |= (buf[pos+2] & 0x3F) << 18;
+      unicode |= (buf[pos+3] & 0x3F) << 12;
       unicode |= (buf[pos+4] & 0x3F) << 6;
       unicode |= (buf[pos+5] & 0x3F);
       str+= String.fromCharCode(unicode) ;
@@ -58,8 +58,8 @@ function binayUtf8ToString(buf, begin){
 
     }else if ((flag &0xF8) === 0xF8 ){
       unicode = (buf[pos] & 0x7) << 24;
-      unicode |= (buf[pos+1] & 0x3F) << 18; 
-      unicode |= (buf[pos+2] & 0x3F) << 12; 
+      unicode |= (buf[pos+1] & 0x3F) << 18;
+      unicode |= (buf[pos+2] & 0x3F) << 12;
       unicode |= (buf[pos+3] & 0x3F) << 6;
       unicode |= (buf[pos+4] & 0x3F);
       str+= String.fromCharCode(unicode) ;
@@ -68,7 +68,7 @@ function binayUtf8ToString(buf, begin){
     }
     else if ((flag &0xF0) === 0xF0 ){
       unicode = (buf[pos] & 0xF) << 18;
-      unicode |= (buf[pos+1] & 0x3F) << 12; 
+      unicode |= (buf[pos+1] & 0x3F) << 12;
       unicode |= (buf[pos+2] & 0x3F) << 6;
       unicode |= (buf[pos+3] & 0x3F);
       str+= String.fromCharCode(unicode) ;
@@ -95,13 +95,19 @@ function binayUtf8ToString(buf, begin){
       str+= String.fromCharCode(buf[pos]);
       pos += 1;
     }
- } 
+ }
  return str;
 }
 */
 
 function writeToScreen(str) {
   var out = $('div#out');
+  out.append('<span class="out">' + str + '</span>');
+  out.scrollTop(out.prop("scrollHeight"));
+}
+
+function writeToChat(str) {
+  var out = $('div#chat');
   out.append('<span class="out">' + str + '</span>');
   out.scrollTop(out.prop("scrollHeight"));
 }
@@ -113,17 +119,24 @@ function writeServerData(buf) {
   var str = buf;
 
   var lines = str.split('\r\n');
-  for(var i=0; i<lines.length; i++) {
+  for (var i = 0; i < lines.length; i++) {
     var line = lines[i].replace(/\s\s/g, '&nbsp;');
-    if(i < lines.length-1) line += '<br/>';
+    console.log(line);
+    if (i < lines.length - 1) line += '<br/>';
 
     // replace the prompt "> " with a empty line
     var len = line.length;
-    if(len>=2 && line.substr(len-2) == '> ') line = line.substr(0, line-2) + '<br/>';
+    if (len >= 2 && line.substr(len - 2) == '> ') line = line.substr(0, line - 2) + '<br/>';
 
-    line = ansi_up.ansi_to_html(line);
-
-    writeToScreen(line);
+    if (line.indexOf('$chat#') >= 0) {
+      line = line.replace(/\$(.+?)\#/g, '');
+      line = ansi_up.ansi_to_html(line);
+      writeToChat(line);
+    } else {
+      line = line.replace(/\$(.+?)\#/g, '');
+      line = ansi_up.ansi_to_html(line);
+      writeToScreen(line);
+    }
   }
 }
 
@@ -133,58 +146,59 @@ function adjustLayout() {
   var w1 = $('button#send').outerWidth(true);
   var w2 = $('button#clear').outerWidth(true);
   $('input#cmd').css({
-    width: (w0 - (w1+w2+14)) + 'px',
+    width: (w0 - (w1 + w2 + 14)) + 'px',
   });
   var h0 = $('div#cmd').outerHeight(true);
+  var h1 = $('div#chat').outerHeight(true);
   $('div#out').css({
-    width: (w-2) + 'px',
-    height: (h - h0 -2) + 'px',
+    width: (w - 2) + 'px',
+    height: (h - h0 - h1 - 2) + 'px',
   });
 }
 
 $(window).resize(adjustLayout);
 
-$(document).ready(function(){
+$(document).ready(function () {
   // websocket
   var sock = io.connect();
-  sock.on('stream', function(buf){
+  sock.on('stream', function (buf) {
     writeServerData(buf);
   });
-  sock.on('status', function(str){
+  sock.on('status', function (str) {
     writeToScreen(str);
   });
-  sock.on('connected', function(){
+  sock.on('connected', function () {
     console.log('connected');
   });
-  sock.on('disconnect', function(){
+  sock.on('disconnect', function () {
     console.log('disconnected');
   });
 
   // send
-  var send = function(str) {
+  var send = function (str) {
     writeToScreen(str);
-    if(sock) sock.emit('stream', str);
+    if (sock) sock.emit('stream', str);
   }
-  var sendInput = function() {
+  var sendInput = function () {
     var cmd = $('input#cmd');
     send(cmd.val().trim() + '\n');
     cmd.val('');
   }
 
   // UI events
-  $('input#cmd').keypress(function(e) {
-    if(e.keyCode == 13) sendInput();
+  $('input#cmd').keypress(function (e) {
+    if (e.keyCode == 13) sendInput();
   });
-  $('button#send').click(function(e) {
+  $('button#send').click(function (e) {
     sendInput();
   });
-  $('button#clear').click(function(e) {
+  $('button#clear').click(function (e) {
     $('div#out').html('');
   });
 
-  setTimeout(function(){
+  setTimeout(function () {
     adjustLayout();
-    
+
     send('\n');
-  },200)
+  }, 200)
 });

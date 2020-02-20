@@ -13,7 +13,7 @@ div#out {
   overflow-x: scroll;
   font-size: 12px;
   line-height: 150%;
-  border: 1px solid gray; 
+  border: 1px solid gray;
 }
 
 span.out {
@@ -21,6 +21,16 @@ span.out {
   word-wrap: break-word;
   font-family: SimSun;
   color: white;
+}
+
+div#chat {
+  position: fixed;
+  bottom: 41px;
+  padding: 0px;
+  margin: 0px;
+  width: 100%;
+  height: 100px;
+  overflow: scroll;
 }
 
 div#cmd {
